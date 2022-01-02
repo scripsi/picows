@@ -17,10 +17,10 @@ import math
 NUM_LEDS = 60
 
 # The speed that the LEDs will start cycling at
-DEFAULT_SPEED = 10
+DEFAULT_GAMMA = 2.1
 
 # How many times the LEDs will be updated per second
-UPDATES = 60
+UPDATES = 2
 
 # How bright the LEDs will be (between 0.0 and 1.0)
 BRIGHTNESS = 0.5
@@ -59,39 +59,16 @@ def get_voltage(pin):
 def get_current(pin):
   return get_voltage(pin) / (ADC_GAIN * SHUNT_RESISTOR)
 
-def hsv_to_rgb(h, s, v):
-  # All inputs are from 0.0 to 1.0
-  i = math.floor(h * 6.0)
-  f = h * 6.0 - i
-  v *= 255.0
-  p = v * (1.0 - s)
-  q = v * (1.0 - f * s)
-  t = v * (1.0 - (1.0 - f) * s)
-
-  zone = int(i) % 6
-  if zone == 0:
-    return (v, t, p)
-  if zone == 1:
-    return (q, v, p)
-  if zone == 2:
-    return (p, v, t)
-  if zone == 3:
-    return (p, q, v)
-  if zone == 4:
-    return (t, p, v)
-  if zone == 5:
-    return (v, p, q)
-  return (0, 0, 0)
-
 def button_read(button):
   return not button.value
 
-speed = DEFAULT_SPEED
-offset = 0.0
+gamma = DEFAULT_GAMMA
+angle = 0.0
+delta_angle = 360/(UPDATES * 60)
 pixels_on = True
 
 count = 0
-# Make rainbows
+# Make a gradient
 while True:
   sw = not user_sw.value
   a = not sw_a.value
@@ -101,29 +78,35 @@ while True:
     pixels_on = not pixels_on
   else:
     if a:
-      speed -= 1
+      gamma -= 0.1
     if b:
-      speed += 1
+      gamma += 0.1
 
-  speed = min(255, max(1, speed))
-
-  offset += float(speed) / 2000.0
+  gamma = min(4.0, max(1, gamma))
 
   if pixels_on:
+    # build clock face
     for i in range(NUM_LEDS):
-      hue = float(i) / NUM_LEDS
-      led_strip[i] = hsv_to_rgb(hue + offset, 1.0, 1.0)
+      led_color = fancy.CRGB(50,50,100)
+      led_strip[i] = fancy.gamma_adjust(led_color).pack()
+    for i in range(0,NUM_LEDS,5):
+      led_color = fancy.CRGB(150,150,150)
+      led_strip[i] = fancy.gamma_adjust(led_color).pack()
+    s = int((angle/360)*NUM_LEDS)
+    led_color = fancy.CRGB(255,0,0)
+    led_strip[s] = fancy.gamma_adjust(led_color).pack()
   else:
     for i in range(NUM_LEDS):
       led_strip[i] = (0,0,0)
   led_strip.show()
 
-  led.color = (speed, 0, 255 - speed)
-
   count += 1
   if count >= UPDATES:
     # Display the current value once every second
     print("Current =", get_current(sense), "A")
+    print("angle =", angle)
     count = 0
-
+  angle += delta_angle
+  if angle > 360:
+    angle -= 360
   time.sleep(1.0 / UPDATES)
