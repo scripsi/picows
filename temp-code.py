@@ -88,7 +88,6 @@ def button_read(button):
 
 speed = DEFAULT_SPEED
 offset = 0.0
-pixels_on = True
 
 count = 0
 # Make rainbows
@@ -98,7 +97,7 @@ while True:
   b = not sw_b.value
 
   if sw:
-    pixels_on = not pixels_on
+    speed = DEFAULT_SPEED
   else:
     if a:
       speed -= 1
@@ -109,13 +108,9 @@ while True:
 
   offset += float(speed) / 2000.0
 
-  if pixels_on:
-    for i in range(NUM_LEDS):
-      hue = float(i) / NUM_LEDS
-      led_strip[i] = hsv_to_rgb(hue + offset, 1.0, 1.0)
-  else:
-    for i in range(NUM_LEDS):
-      led_strip[i] = (0,0,0)
+  for i in range(NUM_LEDS):
+    hue = float(i) / NUM_LEDS
+    led_strip[i] = hsv_to_rgb(hue + offset, 1.0, 1.0)
   led_strip.show()
 
   led.color = (speed, 0, 255 - speed)
